@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-panel-container">
+    <h2>Administración del juego - Panel avanzado</h2>
+    <div class="admin-summary">
+        <div class="info-box">
+            <div class="label">Juegos</div>
+            <div class="value">{{ total_juegos }}</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Compañías</div>
+            <div class="value">{{ total_companias }}</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Turno actual</div>
+            <div class="value">{% if ultimo_turno %}{{ ultimo_turno.turno_id }}{% else %}0{% endif %}</div>
+        </div>
+    </div>
+
+    <section class="admin-section">
+        <h3>Acciones rápidas</h3>
+        <form method="post" action="{% url 'admin_avanzar_turno' %}" id="turnForm">
+            {% csrf_token %}
+            <label for="juego_id">Juego</label>
+            <select id="juego_id" name="juego_id">
+                {% for juego in juegos %}
+                    <option value="{{ juego.id }}">Juego {{ juego.id }} - {{ juego.descripcion }}</option>
+                {% empty %}
+                    <option value="">Sin juegos</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="button">Avanzar turno</button>
+        </form>
+    </section>
+
+    <div class="admin-tabs">
+        <button class="tab-button active" data-tab="tab-balance">Balance en el tiempo</button>
+        <button class="tab-button" data-tab="tab-growth">Tasa de crecimiento</button>
+        <button class="tab-button" data-tab="tab-regional">Captura por región</button>
+        <button class="tab-button" data-tab="tab-ranking">Ranking</button>
+    </div>
+
+    <section class="admin-section tab-content active" id="tab-balance">
+        <h3>Balance acumulado por empresa</h3>
+        <div class="admin-chart-wrap">
+            <canvas id="adminChart" width="960" height="320"></canvas>
+        </div>
+    </section>
+
+    <section class="admin-section tab-content" id="tab-growth">
+        <h3>Tasa de crecimiento por turno (%)</h3>
+        <div class="admin-chart-wrap">
+            <canvas id="growthChart" width="960" height="320"></canvas>
+        </div>
+    </section>
+
+    <section class="admin-section tab-content" id="tab-regional">
+        <h3>Captura acumulada por región</h3>
+        <div class="table-wrap">
+            <table class="admin-table" id="regionalTable">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Costa</th>
+                        <th>Mar profundo</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4">Cargando datos...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-section tab-content" id="tab-ranking">
+        <h3>Ranking en vivo - Torneo</h3>
+        <div class="table-wrap">
+            <table class="admin-table admin-ranking" id="rankingTable">
+                <thead>
+                    <tr>
+                        <th>Posición</th>
+                        <th>Empresa</th>
+                        <th>Balance</th>
+                        <th>Captura total</th>
+                        <th>Costa %</th>
+                        <th>Mar %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6">Cargando datos...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <h3>Balances actuales</h3>
+        <div class="table-wrap">
+            <table class="admin-table" id="balancesTable">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for compania in companias %}
+                    <tr>
+                        <td>{{ compania.nombre }}</td>
+                        <td>${{ compania.estado_resultados }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2">No hay compañías registradas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <h3>Juegos</h3>
+        <ul class="admin-list">
+            {% for juego in juegos %}
+            <li>
+                <strong>Juego {{ juego.id }}</strong> - {{ juego.descripcion }}
+                {% if juego.finalizado %}<span class="status-badge status-finished">Finalizado</span>{% else %}<span class="status-badge status-open">Activo</span>{% endif %}
+            </li>
+            {% empty %}
+            <li>No hay juegos registrados.</li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const adminChart = document.getElementById('adminChart');
+const growthChart = document.getElementById('growthChart');
+const balancesTable = document.getElementById('balancesTable');
+const regionalTable = document.getElementById('regionalTable');
+const rankingTable = document.getElementById('rankingTable');
+const turnForm = document.getElementById('turnForm');
+
+function renderChart(data, canvasId, seriesData, yLabel) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !seriesData || seriesData.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = { top: 20, right: 20, bottom: 32, left: 52 };
+    const allValues = seriesData.flatMap(series => series.points.map(point => point.y));
+    const minY = Math.min(...allValues, 0);
+    const maxY = Math.max(...allValues, 1000000000);
+    const xStep = data.turnos.length > 1 ? (width - padding.left - padding.right) / (data.turnos.length - 1) : 1;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#0b1728';
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+        const y = padding.top + ((height - padding.top - padding.bottom) / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+    }
+
+    for (let i = 0; i < data.turnos.length; i++) {
+        const x = padding.left + i * xStep;
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top);
+        ctx.lineTo(x, height - padding.bottom);
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = '#dfeaf7';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    data.turnos.forEach((turn, index) => {
+        const x = padding.left + index * xStep;
+        ctx.fillText(String(turn), x, height - 10);
+    });
+
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 5; i++) {
+        const value = minY + ((maxY - minY) / 5) * (5 - i);
+        const y = padding.top + ((height - padding.top - padding.bottom) / 5) * i;
+        const label = yLabel === '%' ? value.toFixed(1) + '%' : '$' + Math.round(value).toLocaleString();
+        ctx.fillText(label, padding.left - 8, y + 4);
+    }
+
+    seriesData.forEach((serie) => {
+        ctx.beginPath();
+        serie.points.forEach((point, index) => {
+            const x = padding.left + (data.turnos.indexOf(point.x) * xStep || 0);
+            const y = padding.top + ((maxY - point.y) / (maxY - minY || 1)) * (height - padding.top - padding.bottom);
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = serie.color;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+    });
+}
+
+function renderBalances(data) {
+    if (!balancesTable || !data.balances) return;
+    balancesTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th>Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${data.balances.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>$${Number(item.balance).toLocaleString()}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="2">Sin datos</td></tr>'}
+        </tbody>
+    `;
+}
+
+function renderRegional(data) {
+    if (!regionalTable || !data.regional) return;
+    regionalTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th>Costa</th>
+                <th>Mar profundo</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${data.regional.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${Number(item.costa).toLocaleString()}</td>
+                    <td>${Number(item.mar).toLocaleString()}</td>
+                    <td><strong>${Number(item.total).toLocaleString()}</strong></td>
+                </tr>
+            `).join('') || '<tr><td colspan="4">Sin datos</td></tr>'}
+        </tbody>
+    `;
+}
+
+function renderRanking(data) {
+    if (!rankingTable || !data.ranking) return;
+    rankingTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Posición</th>
+                <th>Empresa</th>
+                <th>Balance</th>
+                <th>Captura total</th>
+                <th>Costa %</th>
+                <th>Mar %</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${data.ranking.map((item, idx) => `
+                <tr class="rank-${idx === 0 ? 'first' : idx === 1 ? 'second' : idx === 2 ? 'third' : 'other'}">
+                    <td><strong>${idx + 1}</strong></td>
+                    <td>${item.name}</td>
+                    <td>$${Number(item.balance).toLocaleString()}</td>
+                    <td>${Number(item.captura).toLocaleString()}</td>
+                    <td>${item.costa_pct}%</td>
+                    <td>${item.mar_pct}%</td>
+                </tr>
+            `).join('') || '<tr><td colspan="6">Sin datos</td></tr>'}
+        </tbody>
+    `;
+}
+
+function loadAdminMetrics() {
+    const selected = document.getElementById('juego_id');
+    const juegoId = selected ? selected.value : '';
+    const url = juegoId ? `/admin/metrics/?juego_id=${encodeURIComponent(juegoId)}` : '/admin/metrics/';
+    fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+            renderChart(data, 'adminChart', data.series, '$');
+            renderChart(data, 'growthChart', data.growth, '%');
+            renderBalances(data);
+            renderRegional(data);
+            renderRanking(data);
+        })
+        .catch(() => {});
+}
+
+document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', function () {
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab).classList.add('active');
+    });
+});
+
+if (turnForm) {
+    turnForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') },
+            body: formData,
+        })
+        .then(() => {
+            loadAdminMetrics();
+            window.location.reload();
+        })
+        .catch(err => console.error('Error:', err));
+    });
+}
+
+const juegoSelect = document.getElementById('juego_id');
+if (juegoSelect) {
+    juegoSelect.addEventListener('change', loadAdminMetrics);
+}
+
+loadAdminMetrics();
+setInterval(loadAdminMetrics, 5000);
+</script>
+{% endblock %}

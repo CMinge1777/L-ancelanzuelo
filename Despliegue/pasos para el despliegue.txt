@@ -1,0 +1,27 @@
+PASOS PARA REALIZAR EL DESPLIEGUE DE LA APLICACION:
+
+1) INSTALAR WAMP Y CONFIGURARLOS PARA AUTOARRANQUE(solo computado casero)
+2) HABILITAR EL GATEWAY DEL AMFPHP PARA CONECTAR CON FLASH ( NO CALL BAD VERSION ERROR)
+3) HABILITAR EL USO DE EVENTOS EN MYSQL SET GLOBAL EVENT_SCHEDULER = ON 
+4) HABILITAR LA CREACION DE FUNCIONES QUE MODIFIQUEN LA BASE DE DATOS SET LOG_BIN_TRUST_FUNCTION_CREATORS = 1
+5) CORRER EL SCRIPT DE LA CREACION DE LA BASE DE DATOS
+6) CORRER EL SCRIPT DE LA CREACION DE LAS FUNCIONES, PROCEDIMIENTOS Y TRIGUERS
+7) CONFIGURAR LA CREACION DE LOS DATOS INICIALES DESDE LA PAGINA DEL ADMINISTRADOR
+8) CREAR EL USUARIO 'fishbanks' CON CONTRASEÑA 'fishbanks' Y BRINDARLE PRIVILEGIOS INSERT, UPDATE, SELECT
+9) INSERTAR LA PAGINA WEB DEL ADMINISTRADOR
+10) INSERTAR LA PAGINA WEB DEL JUEGO
+11) OCULTAR LAS DIRECCIONES REALES(SI SE PUEDE)
+12) METERLE SEGURIDAD(LO QUE SE PUEDA)
+
+
+pasos para despliegue en un servidor con cron jobs y sin eventos
+
+1) crear la bd con nombre fishbanksDB
+2) crear el usuario administrador de la bd
+3) insertar los scripts de creacion de la base de datos con el nombre de la bd cambiado en todas las tablas
+4) crear todas las funciones y procedimientos
+5) enviar a support la creacion del trigger, si no se puede crear triggers se usa theJobNoTrigger.php, de lo contrario usar el script theJob.php
+6) por ftp enviar la pagina web de admin y del juego con el amfphp
+7) subir el script de los cron jobs
+8) crear el cron job o pedir a soporte tecnico q lo cree, y que se ejecute cada 
+

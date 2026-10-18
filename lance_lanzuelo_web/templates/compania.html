@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="compania-container">
+    <h2>Escritorio de {{ compania.nombre }}</h2>
+    <div class="topbar-actions" style="margin-bottom:20px;">
+        <a href="{% url 'golfo' %}" class="button">Volver al Golfo</a>
+        <a href="{% url 'juego_produccion' %}" class="button">Pantalla de producción</a>
+        <a href="{% url 'logout' %}" class="button danger">Salir</a>
+    </div>
+    <div class="cards" style="margin-bottom: 20px;">
+        <div class="card summary-card">
+            <div class="label">Captura estimada</div>
+            <div class="value" id="companySummaryCapture">{{ resumen_posicion.captura_total|default:0 }} kg</div>
+        </div>
+        <div class="card summary-card">
+            <div class="label">Costo operativo</div>
+            <div class="value" id="companySummaryCost">$ {{ resumen_posicion.costo_operativo|default:0 }}</div>
+        </div>
+        <div class="card summary-card">
+            <div class="label">Ingresos estimados</div>
+            <div class="value" id="companySummaryIncome">$ {{ resumen_posicion.ingresos_estimados|default:0 }}</div>
+        </div>
+    </div>
+
+    <div class="cards">
+        <div class="card" onclick="openModal('banco')">🏦 Banco</div>
+        <div class="card" onclick="openModal('stats')">📊 Estadísticas</div>
+        <div class="card" onclick="openModal('mercado')">🚤 Mercado</div>
+        <div class="card" onclick="openModal('posicion')">🗺️ Posicionamiento</div>
+        <div class="card" onclick="openModal('subasta')">🔨 Subasta</div>
+        <div class="card" onclick="openModal('noticias')">📰 Noticias</div>
+        <div class="card" onclick="openModal('region')">🎣 Pesca por región</div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/compania_modals.js"></script>
+<script>
+    window.companySummary = {
+        captura_total: {{ resumen_posicion.captura_total|default:0 }},
+        costo_operativo: {{ resumen_posicion.costo_operativo|default:0 }},
+        ingresos_estimados: {{ resumen_posicion.ingresos_estimados|default:0 }}
+    };
+</script>
+{% endblock %}

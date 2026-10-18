@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="production-container">
+    <div class="topbar-production">
+        <div>
+            <h2>Pantalla de juego en producción</h2>
+            <p>Compañía {{ compania.nombre }} · Juego {{ compania.juego.id }} · Turno {{ turno_actual }}</p>
+        </div>
+        <div class="topbar-actions">
+            <a href="{% url 'golfo' %}" class="button">Mapa del Golfo</a>
+            <a href="{% url 'compania' %}" class="button">Mi compañía</a>
+            <a href="{% url 'admin_panel' %}" class="button">Administración</a>
+            <a href="{% url 'logout' %}" class="button danger">Salir</a>
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="info-box">
+            <div class="label">Balance</div>
+            <div class="value">${{ balance }}</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Ubicación</div>
+            <div class="value">{{ compania.ubicacion_terrestre }}</div>
+        </div>
+        <div class="info-box">
+            <div class="label">Flota</div>
+            <div class="value">{{ barcos|length }}</div>
+        </div>
+    </div>
+
+    <div class="production-grid">
+        <section class="panel">
+            <h3>Estado del mar</h3>
+            <div class="alert warning">
+                Onda de agua y chubascos reportados en profundidad. Mantener vigilancia en mar profundo.
+            </div>
+            <div class="sea-map">
+                <div class="zone coast">Costa</div>
+                <div class="zone deep">Mar profundo</div>
+                <div class="zone port">Puerto</div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h3>Barcos activos</h3>
+            {% for barco in barcos %}
+            <div class="fleet-row">
+                <span>{{ barco.tipo }}</span>
+                <strong>{{ barco.cantidad }} uds.</strong>
+                <small>{{ barco.ubicacion }}</small>
+            </div>
+            {% empty %}
+            <p>No hay barcos registrados.</p>
+            {% endfor %}
+        </section>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="golfo-container">
+  <div class="golfo-header">
+    <div>
+      <h2>Mapa del Golfo de Urabá</h2>
+      <p class="subtitle">Compañía: <strong>{{ compania.nombre }}</strong> · Turno: <span id="turnoActual">0</span> · Balance: <strong>${{ compania.estado_resultados }}</strong></p>
+    </div>
+    <div class="header-actions">
+      <a href="{% url 'compania' %}" class="button">Mi Compañía</a>
+      <a href="{% url 'juego_produccion' %}" class="button">Producción</a>
+      <a href="{% url 'logout' %}" class="button danger">Salir</a>
+    </div>
+  </div>
+
+  <div class="turn-banner">
+    <div>
+      <span class="pill">Turno activo</span>
+      <strong id="turnoBadge">0</strong>
+    </div>
+    <div>
+      <span class="pill neutral">Estado del mar</span>
+      <strong id="estadoMar">Controlado</strong>
+    </div>
+    <div>
+      <span class="pill warning">Riesgo</span>
+      <strong id="riesgoMar">Bajo</strong>
+    </div>
+  </div>
+  
+  <canvas id="mapaCanvas" width="800" height="600"></canvas>
+
+  <div class="quick-actions-grid">
+    <button class="action-card primary" data-action="mercado">
+      <span>🚤</span>
+      <strong>Comprar barcos</strong>
+      <small>Ampliar flota</small>
+    </button>
+    <button class="action-card" data-action="subasta">
+      <span>🔨</span>
+      <strong>Subastas</strong>
+      <small>Ofertar activos</small>
+    </button>
+    <button class="action-card" data-action="noticias">
+      <span>📰</span>
+      <strong>Noticias</strong>
+      <small>Cada 2 o 3 corridas</small>
+    </button>
+    <button class="action-card" data-action="region">
+      <span>🎣</span>
+      <strong>Pesca por región</strong>
+      <small>Costa vs mar profundo</small>
+    </button>
+  </div>
+  
+  <div class="controles-golfo">
+    <div class="info-panel">
+      <h3>Instrucciones del Juego</h3>
+      <ul>
+        <li><strong>Puertos:</strong> Puntos seguros para partir y resguardarse</li>
+        <li><strong>Costa:</strong> Zona de pesca moderada, riesgo controlado</li>
+        <li><strong>Mar Profundo:</strong> Zona de alto riesgo pero mayores ganancias</li>
+        <li><strong>Tormentas:</strong> Pueden destruir la flota en mar profundo</li>
+      </ul>
+    </div>
+    
+    <div class="actions-panel">
+      <h3>Acciones del turno</h3>
+      <a href="{% url 'compania' %}" class="button primary">Gestionar Barcos</a>
+      <button type="button" class="button" onclick="fetchTurnInfo()">Actualizar turno</button>
+      <a href="{% url 'logout' %}" class="button">Cerrar Sesión</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/golfo.js"></script>
+<script>
+    window.gameData = {
+        companiaId: {{ compania.id }},
+        juegoId: {{ compania.juego.id }},
+        companiaNombre: "{{ compania.nombre }}",
+        ubicacionTerrestre: {{ compania.ubicacion_terrestre }}
+    };
+    if(typeof drawMap === 'function') drawMap();
+    if(typeof bindQuickActions === 'function') bindQuickActions();
+    if(typeof fetchTurnInfo === 'function') fetchTurnInfo();
+</script>
+{% endblock %}
+
